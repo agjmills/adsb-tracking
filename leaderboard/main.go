@@ -140,6 +140,23 @@ func main() {
 		}
 		writeJSON(w, rows)
 	})
+	mux.HandleFunc("/api/nearme", func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		maxAlt := getQueryInt(q, "max_alt", 12000)
+		seenSecs := getQueryInt(q, "seen", 180)
+		userLat := getQueryFloat(q, "lat", 0)
+		userLon := getQueryFloat(q, "lon", 0)
+		if userLat == 0 && userLon == 0 {
+			http.Error(w, "provide lat and lon", 400)
+			return
+		}
+		nearest, err := db.getNearestByCoords(maxAlt, seenSecs, userLat, userLon)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		writeJSON(w, nearest)
+	})
 	mux.HandleFunc("/nearest", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
@@ -191,6 +208,15 @@ func getQueryInt(q map[string][]string, key string, def int) int {
 	if v, ok := q[key]; ok && len(v) > 0 {
 		if i, err := strconv.Atoi(v[0]); err == nil {
 			return i
+		}
+	}
+	return def
+}
+
+func getQueryFloat(q map[string][]string, key string, def float64) float64 {
+	if v, ok := q[key]; ok && len(v) > 0 {
+		if f, err := strconv.ParseFloat(v[0], 64); err == nil {
+			return f
 		}
 	}
 	return def

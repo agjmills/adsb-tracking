@@ -466,6 +466,44 @@ func (d *DB) fixMilitaryFlags() {
 	}
 }
 
+func (d *DB) getNearestByCoords(maxAlt int, seenSecs int, userLat, userLon float64) (*nearestInfo, error) {
+	cutoff := time.Now().Unix() - int64(seenSecs)
+	rows, err := d.Query(`SELECT s.icao24, s.callsign, s.lat, s.lon, s.altitude_ft, s.ground_speed_kt, s.track, s.seen_at,
+		a.registration, a.manufacturer, a.model, a.operator_name, a.country, a.country_flag, a.is_military
+		FROM sightings s LEFT JOIN aircraft a ON s.icao24 = a.icao24
+		WHERE s.seen_at > ? AND s.altitude_ft <= ? AND s.lat IS NOT NULL AND s.lon IS NOT NULL
+		ORDER BY s.distance_nm ASC LIMIT 50`, cutoff, maxAlt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var best *nearestInfo
+	var bestDist float64 = 1e9
+	for rows.Next() {
+		var n nearestInfo
+		var mil int
+		var lat, lon float64
+		err := rows.Scan(&n.ICAO24, &n.Callsign, &lat, &lon, &n.AltitudeFt, &n.SpeedKt, &n.Track, &n.SeenAt,
+			&n.Registration, &n.Manufacturer, &n.Model, &n.Operator, &n.Country, &n.CountryFlag, &mil)
+		if err != nil {
+			continue
+		}
+		n.IsMilitary = mil == 1
+		n.Lat = lat
+		n.Lon = lon
+		dist := haversineNM(userLat, userLon, lat, lon)
+		if dist < bestDist {
+			bestDist = dist
+			n.DistNM = dist
+			n.Bearing = int(initialBearing(userLat, userLon, lat, lon))
+			cp := n
+			best = &cp
+		}
+	}
+	return best, rows.Err()
+}
+
 func (d *DB) uniqueAircraftToday() int {
 	var c int
 	d.QueryRow(`SELECT COUNT(*) FROM aircraft WHERE date(last_seen, 'unixepoch') = date('now')`).Scan(&c)
