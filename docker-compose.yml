@@ -1,0 +1,90 @@
+services:
+  ultrafeeder:
+    image: ghcr.io/sdr-enthusiasts/docker-adsb-ultrafeeder:latest
+    container_name: ultrafeeder
+    restart: unless-stopped
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    networks:
+      - proxy-network
+      - default
+    environment:
+      - READSB_DEVICE_TYPE=rtlsdr
+      - READSB_RTLSDR_DEVICE=00001000
+      - TZ=Europe/London
+      - READSB_LAT=52.254094
+      - READSB_LON=-2.149912
+      - READSB_ALT=50m
+      - READSB_GAIN=auto
+      - TAR1090_ENABLED=true
+      - WEBPORT=80
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adsb.rule=Host(`ads-b.asdfx.us`)"
+      - "traefik.http.routers.adsb.entrypoints=websecure"
+      - "traefik.http.routers.adsb.tls.certresolver=cloudflare"
+      - "traefik.http.services.adsb.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy-network"
+
+  piaware:
+    image: ghcr.io/sdr-enthusiasts/docker-piaware:latest
+    container_name: piaware
+    restart: unless-stopped
+    depends_on:
+      - ultrafeeder
+    environment:
+      - BEASTHOST=ultrafeeder
+      - TZ=Europe/London
+      - LAT=52.254094
+      - LON=-2.149912
+      - ALT=50m
+      - FEEDER_ID=3107a0b9-8c77-45b8-aacc-1314509621e6
+
+  adsbx:
+    image: ghcr.io/sdr-enthusiasts/docker-adsbexchange:latest
+    container_name: adsbexchange
+    restart: unless-stopped
+    depends_on:
+      - ultrafeeder
+    environment:
+      - BEASTHOST=ultrafeeder
+      - TZ=Europe/London
+      - LAT=52.254094
+      - LONG=-2.149912
+      - ALT=50m
+      - SITENAME=Droitwich
+      - UUID=43fef96d-8e36-4bbc-8069-8da9e02fa4c0
+
+  leaderboard:
+    build: ./leaderboard
+    container_name: adsb-leaderboard
+    restart: unless-stopped
+    depends_on:
+      - ultrafeeder
+    volumes:
+      - adsb-leaderboard-data:/data
+    environment:
+      - HOME_LAT=52.254094
+      - HOME_LON=-2.149912
+      - DUMP1090_URL=http://ultrafeeder/data/aircraft.json
+      - POLL_INTERVAL=5
+      - CLEANUP_HOURS=48
+      - PORT=5000
+      - TZ=Europe/London
+    networks:
+      - proxy-network
+      - default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adsb-lb.rule=Host(`lb.asdfx.us`)"
+      - "traefik.http.routers.adsb-lb.entrypoints=websecure"
+      - "traefik.http.routers.adsb-lb.tls.certresolver=cloudflare"
+      - "traefik.http.services.adsb-lb.loadbalancer.server.port=5000"
+      - "traefik.docker.network=proxy-network"
+
+networks:
+  proxy-network:
+    external: true
+
+volumes:
+  adsb-leaderboard-data:
