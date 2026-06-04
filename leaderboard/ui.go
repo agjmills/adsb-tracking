@@ -241,7 +241,7 @@ footer{padding:20px;text-align:center;color:var(--muted);font-size:10px;letter-s
   <div class="radar"><div class="radar-dot d1"></div><div class="radar-dot d2"></div><div class="radar-dot d3"></div></div>
   <div class="header-title">
    <h1>ADS-B LEADERBOARD</h1>
-   <div class="sub">Droitwich, UK &middot; 52.254&deg;N 2.150&deg;W &middot; 50m AMSL</div>
+   <div class="sub" id="siteInfo">Loading...</div>
   </div>
   <div class="station-tag">LOCAL</div>
  </div>
@@ -372,6 +372,7 @@ function makeRow(cols){var t='';for(var i=0;i<cols.length;i++)t+='<td>'+cols[i]+
 
 function loadStats(){
  fetch('/api/stats').then(function(r){return r.json()}).then(function(s){
+  document.getElementById('siteInfo').textContent=s.site_name+' &middot; '+fmt(s.site_lat,3)+'&deg;N '+fmt(Math.abs(s.site_lon),3)+'&deg;'+(s.site_lon<0?'W':'E')+' &middot; '+s.site_alt+' AMSL';
   document.getElementById('stTotal').textContent=(s.total_aircraft||0).toLocaleString();
   document.getElementById('stSightings').textContent=(s.total_sightings||0).toLocaleString();
   document.getElementById('stMil').textContent=(s.military_aircraft||0).toLocaleString();

@@ -213,6 +213,10 @@ func (d *DB) getUnenriched(count int) ([]string, error) {
 }
 
 type globalStats struct {
+	SiteName         string  `json:"site_name"`
+	SiteLat          float64 `json:"site_lat"`
+	SiteLon          float64 `json:"site_lon"`
+	SiteAlt          string  `json:"site_alt"`
 	TotalAircraft    int     `json:"total_aircraft"`
 	TotalSightings   int64   `json:"total_sightings"`
 	MilitaryAircraft int     `json:"military_aircraft"`

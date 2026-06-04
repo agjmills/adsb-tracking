@@ -16,6 +16,14 @@ import (
 func main() {
 	homeLat := getenvFloat("HOME_LAT", 0)
 	homeLon := getenvFloat("HOME_LON", 0)
+	siteName := os.Getenv("SITE_NAME")
+	if siteName == "" {
+		siteName = "Unknown"
+	}
+	siteAlt := os.Getenv("SITE_ALT")
+	if siteAlt == "" {
+		siteAlt = "0m"
+	}
 	dumpURL := os.Getenv("DUMP1090_URL")
 	if dumpURL == "" {
 		dumpURL = "http://localhost/data/aircraft.json"
@@ -71,6 +79,10 @@ func main() {
 			http.Error(w, err.Error(), 500)
 			return
 		}
+		stats.SiteName = siteName
+		stats.SiteLat = homeLat
+		stats.SiteLon = homeLon
+		stats.SiteAlt = siteAlt
 		writeJSON(w, stats)
 	})
 	mux.HandleFunc("/api/leaderboard", func(w http.ResponseWriter, r *http.Request) {
