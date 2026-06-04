@@ -223,7 +223,8 @@ footer a{color:var(--muted)}
   <div class="nav-card" onclick="navigate('altitude')"><div class="nav-icon">⛰</div><div class="nav-label">Altitude</div><div class="nav-desc">Highest tracked</div></div>
   <div class="nav-card" onclick="navigate('speed')"><div class="nav-icon">⚡</div><div class="nav-label">Speed</div><div class="nav-desc">Fastest tracked</div></div>
   <div class="nav-card" onclick="navigate('recent')"><div class="nav-icon">🕐</div><div class="nav-label">Recent</div><div class="nav-desc">Live sightings</div></div>
-  <div class="nav-card" onclick="navigate('daily')"><div class="nav-icon">📅</div><div class="nav-label">Daily</div><div class="nav-desc">Per-day stats</div></div>
+   <div class="nav-card" onclick="navigate('daily')"><div class="nav-icon">📅</div><div class="nav-label">Daily</div><div class="nav-desc">Per-day stats</div></div>
+   <div class="nav-card" id="faCard" style="display:none"><div class="nav-icon">🛰</div><div class="nav-label">FlightAware</div><div class="nav-desc">My feeder stats</div></div>
  </div>
 </main>
 
@@ -281,7 +282,6 @@ footer a{color:var(--muted)}
 
 <script>
 var currentPage='home';
-var radarHost='';
 var tabData={};
 
 function fmt(v,d){return v!=null?v.toFixed(d||1):'--'}
@@ -294,6 +294,11 @@ var stats=null;
 function loadStats(){
  fetch('/api/stats').then(function(r){return r.json()}).then(function(s){
   stats=s;
+  var fa=document.getElementById('faCard');
+  if(s.feeder_id){
+   fa.style.display='flex';
+   fa.onclick=function(){window.open('https://flightaware.com/adsb/stats/user/'+encodeURIComponent(s.feeder_id),'_blank')};
+  }
   document.getElementById('headerSub').textContent=s.site_name+' \u00b7 '+fmt(s.site_lat,3)+'\u00b0N '+fmt(Math.abs(s.site_lon),3)+'\u00b0'+(s.site_lon<0?'W':'E')+' \u00b7 '+s.site_alt+' AMSL';
   document.getElementById('footerTime').textContent='Updated '+new Date().toLocaleTimeString();
   updateStatsGrid();
@@ -325,10 +330,7 @@ function updateStatsGrid(){
 function navigate(page){
  if(page==='nearme'){loadNearMe();}
  else if(page==='radar'){
-  if(!radarHost){fetch('/api/stats').then(function(r){return r.json()}).then(function(s){
-   radarHost='https://'+document.location.hostname.replace('lb.','ads-b.');
-   document.getElementById('radarFrame').src=radarHost;
-  });}else{document.getElementById('radarFrame').src=radarHost;}
+  document.getElementById('radarFrame').src='/radar/';
  }
  currentPage=page;
  window.location.hash=page;

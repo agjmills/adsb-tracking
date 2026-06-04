@@ -217,6 +217,7 @@ type globalStats struct {
 	SiteLat          float64 `json:"site_lat"`
 	SiteLon          float64 `json:"site_lon"`
 	SiteAlt          string  `json:"site_alt"`
+	FeederID         string  `json:"feeder_id"`
 	TotalAircraft    int     `json:"total_aircraft"`
 	TotalSightings   int64   `json:"total_sightings"`
 	MilitaryAircraft int     `json:"military_aircraft"`

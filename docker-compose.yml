@@ -19,12 +19,7 @@ services:
       - TAR1090_ENABLED=true
       - WEBPORT=80
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.adsb.rule=Host(`${ADSB_HOST}`)"
-      - "traefik.http.routers.adsb.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
-      - "traefik.http.routers.adsb.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-cloudflare}"
-      - "traefik.http.services.adsb.loadbalancer.server.port=80"
-      - "traefik.docker.network=proxy-network"
+      - "traefik.enable=false"
 
   piaware:
     image: ghcr.io/sdr-enthusiasts/docker-piaware:latest
@@ -80,7 +75,7 @@ services:
       - default
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.adsb-lb.rule=Host(`${LEADERBOARD_HOST}`)"
+      - "traefik.http.routers.adsb-lb.rule=Host(`${ADSB_HOST}`)"
       - "traefik.http.routers.adsb-lb.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
       - "traefik.http.routers.adsb-lb.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-cloudflare}"
       - "traefik.http.services.adsb-lb.loadbalancer.server.port=5000"

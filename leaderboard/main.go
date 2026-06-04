@@ -6,6 +6,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -83,6 +85,7 @@ func main() {
 		stats.SiteLat = homeLat
 		stats.SiteLon = homeLon
 		stats.SiteAlt = siteAlt
+		stats.FeederID = os.Getenv("PIAWARE_FEEDER_ID")
 		writeJSON(w, stats)
 	})
 	mux.HandleFunc("/api/leaderboard", func(w http.ResponseWriter, r *http.Request) {
@@ -161,6 +164,17 @@ func main() {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		w.Write([]byte(nearestHTML))
+	})
+
+	radarURL, _ := url.Parse("http://ultrafeeder")
+	radarProxy := httputil.NewSingleHostReverseProxy(radarURL)
+	mux.HandleFunc("/radar/", func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = "/" + strings.TrimPrefix(r.URL.Path, "/radar/")
+		r.URL.RawPath = ""
+		radarProxy.ServeHTTP(w, r)
+	})
+	mux.HandleFunc("/radar", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/radar/", http.StatusMovedPermanently)
 	})
 
 	addr := ":" + port
