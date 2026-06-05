@@ -218,7 +218,7 @@ footer a{color:var(--muted)}
   <div class="nav-card near-card" onclick="navigate('nearest')"><div class="nav-icon">✈</div><div class="nav-label">Nearest</div><div class="nav-desc">Closest low-altitude</div></div>
   <div class="nav-card near-card" onclick="navigate('nearme')"><div class="nav-icon">📍</div><div class="nav-label">Near Me</div><div class="nav-desc">What's overhead?</div></div>
   <div class="nav-card" onclick="navigate('leaderboard')"><div class="nav-icon">📋</div><div class="nav-label">Leaderboard</div><div class="nav-desc">Most seen planes</div></div>
-  <div class="nav-card mil-card" onclick="navigate('military')"><div class="nav-icon">⚔</div><div class="nav-label">Military</div><div class="nav-desc">Military aircraft</div></div>
+  <div class="nav-card mil-card" onclick="navigate('military')"><div class="nav-icon">⚔</div><div class="nav-label">Military</div><div class="nav-desc">Recent military activity</div></div>
   <div class="nav-card" onclick="navigate('distance')"><div class="nav-icon">📏</div><div class="nav-label">Distance</div><div class="nav-desc">Furthest tracked</div></div>
   <div class="nav-card" onclick="navigate('altitude')"><div class="nav-icon">⛰</div><div class="nav-label">Altitude</div><div class="nav-desc">Highest tracked</div></div>
   <div class="nav-card" onclick="navigate('speed')"><div class="nav-icon">⚡</div><div class="nav-label">Speed</div><div class="nav-desc">Fastest tracked</div></div>
@@ -241,8 +241,8 @@ footer a{color:var(--muted)}
 </table></div></div></div>
 
 <div class="page" id="page-military"><div class="table-page"><div class="table-wrap"><table>
- <thead><tr><th>ICAO24</th><th class="hide-mob">Reg</th><th class="hide-mob">Type</th><th>Callsign</th><th>Sightings</th><th>Speed</th><th>Last</th></tr></thead>
- <tbody id="milBody"><tr class="loading-row"><td colspan="7">Loading...</td></tr></tbody>
+ <thead><tr><th>ICAO24</th><th>Callsign</th><th>Reg</th><th class="hide-mob">Type</th><th>Alt</th><th class="hide-mob">Spd</th><th class="hide-mob">Trk</th><th>Dist</th><th class="hide-mob">Brg</th><th>Seen</th></tr></thead>
+ <tbody id="milBody"><tr class="loading-row"><td colspan="10">Loading...</td></tr></tbody>
 </table></div></div></div>
 
 <div class="page" id="page-distance"><div class="table-page"><div class="table-wrap"><table>
@@ -366,7 +366,7 @@ function loadPage(page){
   case'nearest':loadNearest();break;
   case'nearme':loadNearMe();break;
   case'leaderboard':loadTable('lbBody','/api/leaderboard?sort=sightings&limit=100',leaderboardRows);break;
-  case'military':loadTable('milBody','/api/leaderboard?sort=sightings&limit=100&military=1',militaryRows);break;
+  case'military':loadTable('milBody','/api/military?limit=200',militaryRows);break;
   case'distance':loadTable('distBody','/api/leaderboard?sort=distance&limit=100',distanceRows);break;
   case'altitude':loadTable('altBody','/api/leaderboard?sort=altitude&limit=100',altitudeRows);break;
   case'speed':loadTable('spdBody','/api/leaderboard?sort=speed&limit=100',speedRows);break;
@@ -395,7 +395,7 @@ function leaderboardRows(data){var h='';
 
 function militaryRows(data){var h='';
  for(var i=0;i<data.length;i++){var a=data[i];
-  h+='<tr><td>'+icaoL(a.icao24)+milB(a.is_military)+'</td><td class="hide-mob">'+(a.reg||'<span class="dim">-</span>')+'</td><td class="hide-mob">'+([a.manufacturer,a.model].filter(Boolean).join(' ')||'<span class="dim">-</span>')+'</td><td>'+csL(a.last_callsign)+'</td><td class="bright">'+a.total_sightings.toLocaleString()+'</td><td>'+fmt(a.max_speed_kt,0)+' kt</td><td>'+ago(a.last_seen)+'</td></tr>';
+  h+='<tr><td>'+icaoL(a.icao24)+' <span class="mil-tag">MIL</span></td><td>'+csL(a.callsign)+'</td><td>'+(a.reg||'<span class="dim">-</span>')+'</td><td class="hide-mob">'+([a.manufacturer,a.model].filter(Boolean).join(' ')||'<span class="dim">-</span>')+'</td><td class="bright">'+(a.alt_ft||'-').toLocaleString()+' ft</td><td class="hide-mob">'+fmt(a.speed_kt,0)+' kt</td><td class="hide-mob">'+fmt(a.track,0)+'°</td><td>'+fmt(a.dist_nm,1)+' nm</td><td class="hide-mob">'+(a.bearing||'-')+'°</td><td>'+ago(a.seen_at)+'</td></tr>';
  }return h;}
 
 function distanceRows(data){var h='';

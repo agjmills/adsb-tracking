@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
 	"time"
 )
+
+var errOpenSkyNotFound = errors.New("opensky not found")
 
 type openskyAircraft struct {
 	ICAO24       string `json:"icao24"`
@@ -49,32 +52,62 @@ func (e *enricher) run(ctx context.Context) {
 
 func (e *enricher) process() {
 	list, err := e.db.getUnenriched(5)
-	if err != nil || len(list) == 0 {
+	if err == nil && len(list) > 0 {
+		for _, icao := range list {
+			e.enrichOne(icao)
+		}
+	}
+	stale, err := e.db.getStaleEnriched(3)
+	if err == nil && len(stale) > 0 {
+		for _, icao := range stale {
+			e.enrichOne(icao)
+		}
+	}
+}
+
+func (e *enricher) enrichOne(icao string) {
+	e.mu.Lock()
+	if e.active[icao] {
+		e.mu.Unlock()
 		return
 	}
-	for _, icao := range list {
-		e.mu.Lock()
-		if e.active[icao] {
-			e.mu.Unlock()
-			continue
-		}
-		e.active[icao] = true
-		e.mu.Unlock()
+	e.active[icao] = true
+	e.mu.Unlock()
 
-		go func(id string) {
-			defer func() {
-				e.mu.Lock()
-				delete(e.active, id)
-				e.mu.Unlock()
-			}()
-			info, err := e.lookup(id)
-			if err != nil {
+	go func(id string) {
+		defer func() {
+			e.mu.Lock()
+			delete(e.active, id)
+			e.mu.Unlock()
+		}()
+		callsign, err := e.db.getCallsign(id)
+		if err != nil {
+			callsign = ""
+		}
+		info, err := e.lookup(id)
+		if err != nil {
+			if errors.Is(err, errOpenSkyNotFound) {
 				e.db.updateEnrichment(id, "", "", "", "", "", "")
-				return
+			} else {
+				e.db.markEnrichmentAttempt(id)
 			}
-			e.db.updateEnrichment(id, info.Registration, info.Manufacturer, info.Model, info.Operator, info.OperatorICAO, info.CategoryDesc)
-		}(icao)
-	}
+			if infOperator, infIcao := inferOperatorFromCallsign(callsign); infOperator != "" {
+				e.db.updateEnrichment(id, "", "", "", infOperator, infIcao, "")
+			}
+			return
+		}
+		manufacturer := normalizeName(info.Manufacturer)
+		operator := normalizeName(info.Operator)
+		if operator == "" && info.OperatorICAO == "" {
+			if infOperator, infIcao := inferOperatorFromCallsign(callsign); infOperator != "" {
+				operator = infOperator
+				if info.OperatorICAO == "" {
+					info.OperatorICAO = infIcao
+				}
+			}
+		}
+		e.db.updateEnrichment(id, info.Registration, manufacturer, info.Model, operator, info.OperatorICAO, info.CategoryDesc)
+	}(icao)
 }
 
 func (e *enricher) lookup(icao24 string) (*openskyAircraft, error) {
@@ -85,6 +118,9 @@ func (e *enricher) lookup(icao24 string) (*openskyAircraft, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
+		if resp.StatusCode == 404 {
+			return nil, errOpenSkyNotFound
+		}
 		return nil, fmt.Errorf("opensky returned %d", resp.StatusCode)
 	}
 	var ac openskyAircraft

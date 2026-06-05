@@ -165,18 +165,32 @@ func (d *DB) upsertSighting(icao24, callsign, category string, lat, lon float64,
 	if err != nil {
 		return err
 	}
+
+	var firstToday int
+	_ = tx.QueryRow(`SELECT COUNT(*) FROM sightings WHERE icao24 = ? AND date(seen_at, 'unixepoch') = ?`, icao24, date).Scan(&firstToday)
+
 	if dsExists == 0 {
 		_, err = tx.Exec(`INSERT INTO daily_stats (date, unique_aircraft, total_sightings, military_aircraft, max_distance_nm, max_altitude_ft, max_speed_kt)
-			VALUES (?, 0, 1, 0, ?, ?, ?)`,
-			date, distNM, alt, gs)
+			VALUES (?, 1, 1, ?, ?, ?, ?)`,
+			date, boolToInt(isMil), distNM, alt, gs)
 	} else {
+		milInc := 0
+		if isMil && firstToday == 0 {
+			milInc = 1
+		}
+		unqInc := 0
+		if firstToday == 0 {
+			unqInc = 1
+		}
 		_, err = tx.Exec(`UPDATE daily_stats SET
 			total_sightings = total_sightings + 1,
+			unique_aircraft = unique_aircraft + ?,
+			military_aircraft = military_aircraft + ?,
 			max_distance_nm = MAX(max_distance_nm, ?),
 			max_altitude_ft = MAX(max_altitude_ft, ?),
 			max_speed_kt = MAX(max_speed_kt, ?)
 			WHERE date = ?`,
-			distNM, alt, gs, date)
+			unqInc, milInc, distNM, alt, gs, date)
 	}
 	if err != nil {
 		return err
@@ -195,8 +209,43 @@ func (d *DB) updateEnrichment(icao24, reg, manufacturer, model, operator, operat
 	return err
 }
 
+func (d *DB) markEnrichmentAttempt(icao24 string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	now := time.Now().Unix()
+	_, err := d.Exec(`UPDATE aircraft SET enrichment_ts = ? WHERE icao24 = ? AND enrichment_ts = 0`, now, icao24)
+	return err
+}
+
+func (d *DB) getCallsign(icao24 string) (string, error) {
+	var cs string
+	err := d.QueryRow(`SELECT last_callsign FROM aircraft WHERE icao24 = ?`, icao24).Scan(&cs)
+	if err != nil {
+		return "", err
+	}
+	return cs, nil
+}
+
 func (d *DB) getUnenriched(count int) ([]string, error) {
 	rows, err := d.Query(`SELECT icao24 FROM aircraft WHERE enrichment_ts = 0 LIMIT ?`, count)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+func (d *DB) getStaleEnriched(count int) ([]string, error) {
+	cutoff := time.Now().Add(-6 * time.Hour).Unix()
+	rows, err := d.Query(`SELECT icao24 FROM aircraft WHERE enrichment_ts > 0 AND enrichment_ts < ? AND (operator_name = '' OR manufacturer = '') ORDER BY enrichment_ts ASC LIMIT ?`, cutoff, count)
 	if err != nil {
 		return nil, err
 	}
@@ -399,6 +448,34 @@ func (d *DB) getRecentSightings(limit int) ([]sightingRow, error) {
 	return out, rows.Err()
 }
 
+func (d *DB) getRecentMilitarySightings(limit int) ([]militarySightingRow, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	rows, err := d.Query(`SELECT s.icao24, s.callsign, s.lat, s.lon, s.altitude_ft, s.ground_speed_kt, s.track,
+		s.distance_nm, s.bearing_deg, s.category, s.seen_at,
+		a.registration, a.manufacturer, a.model, a.operator_name, a.country, a.country_flag
+		FROM sightings s JOIN aircraft a ON s.icao24 = a.icao24
+		WHERE a.is_military = 1
+		ORDER BY s.seen_at DESC LIMIT ?`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []militarySightingRow
+	for rows.Next() {
+		var s militarySightingRow
+		err := rows.Scan(&s.ICAO24, &s.Callsign, &s.Lat, &s.Lon, &s.AltFt, &s.SpeedKt, &s.Track,
+			&s.DistNM, &s.Bearing, &s.Category, &s.SeenAt,
+			&s.Registration, &s.Manufacturer, &s.Model, &s.Operator, &s.Country, &s.CountryFlag)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
 func (d *DB) getDailyStats(limit int) ([]dailyRow, error) {
 	if limit <= 0 {
 		limit = 30
@@ -464,6 +541,83 @@ func (d *DB) fixMilitaryFlags() {
 	for _, icao := range all {
 		shouldBeMil := boolToInt(isMilitaryHex(icao))
 		d.Exec("UPDATE aircraft SET is_military = ? WHERE icao24 = ? AND is_military != ?", shouldBeMil, icao, shouldBeMil)
+	}
+}
+
+func (d *DB) backfillCountries() {
+	rows, err := d.Query("SELECT icao24 FROM aircraft WHERE country = ''")
+	if err != nil {
+		return
+	}
+	var all []string
+	for rows.Next() {
+		var icao string
+		if err := rows.Scan(&icao); err != nil {
+			continue
+		}
+		all = append(all, icao)
+	}
+	rows.Close()
+
+	for _, icao := range all {
+		ci := lookupCountry(icao)
+		if ci.Name != "" {
+			d.Exec("UPDATE aircraft SET country = ?, country_flag = ? WHERE icao24 = ? AND country = ''", ci.Name, ci.Flag, icao)
+		}
+	}
+}
+
+func (d *DB) backfillOperators() {
+	rows, err := d.Query("SELECT icao24, last_callsign, operator_icao FROM aircraft WHERE operator_name = '' AND last_callsign != ''")
+	if err != nil {
+		return
+	}
+	type row struct {
+		icao, call, opIcao string
+	}
+	var empty []row
+	for rows.Next() {
+		var r row
+		if err := rows.Scan(&r.icao, &r.call, &r.opIcao); err != nil {
+			continue
+		}
+		empty = append(empty, r)
+	}
+	rows.Close()
+
+	for _, r := range empty {
+		name, icao := inferOperatorFromCallsign(r.call)
+		if name == "" {
+			name, icao = inferOperatorFromIcao(r.opIcao)
+		}
+		if name != "" {
+			d.Exec("UPDATE aircraft SET operator_name = ?, operator_icao = CASE WHEN operator_icao = '' THEN ? ELSE operator_icao END WHERE icao24 = ? AND operator_name = ''", name, icao, r.icao)
+		}
+	}
+
+	rows2, err := d.Query("SELECT icao24, operator_name, manufacturer FROM aircraft WHERE operator_name != '' OR manufacturer != ''")
+	if err != nil {
+		return
+	}
+	type row2 struct {
+		icao, op, mfr string
+	}
+	var normRows []row2
+	for rows2.Next() {
+		var r row2
+		if err := rows2.Scan(&r.icao, &r.op, &r.mfr); err != nil {
+			continue
+		}
+		normRows = append(normRows, r)
+	}
+	rows2.Close()
+
+	for _, r := range normRows {
+		normOp := normalizeName(r.op)
+		normMfr := normalizeName(r.mfr)
+		if normOp != r.op || normMfr != r.mfr {
+			d.Exec("UPDATE aircraft SET operator_name = ?, manufacturer = ? WHERE icao24 = ?", normOp, normMfr, r.icao)
+		}
 	}
 }
 
@@ -559,6 +713,26 @@ type sightingRow struct {
 	RSSI     float64 `json:"rssi"`
 	Category string  `json:"category"`
 	SeenAt   int64   `json:"seen_at"`
+}
+
+type militarySightingRow struct {
+	ICAO24       string  `json:"icao24"`
+	Callsign     string  `json:"callsign"`
+	Lat          float64 `json:"lat"`
+	Lon          float64 `json:"lon"`
+	AltFt        int     `json:"alt_ft"`
+	SpeedKt      float64 `json:"speed_kt"`
+	Track        float64 `json:"track"`
+	DistNM       float64 `json:"dist_nm"`
+	Bearing      int     `json:"bearing"`
+	Category     string  `json:"category"`
+	SeenAt       int64   `json:"seen_at"`
+	Registration string  `json:"reg"`
+	Manufacturer string  `json:"manufacturer"`
+	Model        string  `json:"model"`
+	Operator     string  `json:"operator"`
+	Country      string  `json:"country"`
+	CountryFlag  string  `json:"country_flag"`
 }
 
 type dailyRow struct {

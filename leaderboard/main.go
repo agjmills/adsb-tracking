@@ -50,6 +50,8 @@ func main() {
 	go func() {
 		time.Sleep(3 * time.Second)
 		db.fixMilitaryFlags()
+		db.backfillCountries()
+		db.backfillOperators()
 	}()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -116,6 +118,15 @@ func main() {
 	mux.HandleFunc("/api/recent", func(w http.ResponseWriter, r *http.Request) {
 		limit := getQueryInt(r.URL.Query(), "limit", 100)
 		rows, err := db.getRecentSightings(limit)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		writeJSON(w, rows)
+	})
+	mux.HandleFunc("/api/military", func(w http.ResponseWriter, r *http.Request) {
+		limit := getQueryInt(r.URL.Query(), "limit", 100)
+		rows, err := db.getRecentMilitarySightings(limit)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
