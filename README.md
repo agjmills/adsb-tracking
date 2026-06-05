@@ -16,11 +16,15 @@ Personal ADS-B receiver with leaderboard, metrics, and military aircraft detecti
 - **Radar** — embedded tar1090 map with coverage splat
 - **Nearest** — closest low-altitude aircraft (last 3 min, <12k ft, <10nm)
 - **Leaderboard** — most seen aircraft ranked by sighting count
-- **Military** — dedicated military aircraft tracker (hex range + callsign detection)
-- **Distance / Altitude / Speed** — all-time extremes (furthest, closest, highest, lowest, fastest, slowest)
+- **Military** — dedicated military aircraft tracker with distinct aircraft view (one row per airframe)
+- **Distance / Altitude / Speed** — all-time extremes
 - **Recent** — live sighting feed
 - **Daily** — per-day aggregate stats
-- **Aircraft detail** — click any ICAO24 for full stats + links to PlaneSpotters, FR24, ADSBx
+- **Aircraft detail** — full page with registration, type, operator, stats, and external links
+- **Pattern analysis** — rule-based detection of orbiting, climbing, descending, high-speed transit, and loitering behavior
+- **Flight counting** — unique sessions tracked (30min gap = new flight) via `total_flights` column
+- **Callsign history** — shows all callsigns previously used by an aircraft
+- **Rollup storage** — raw sightings compressed into 5-min windows on cleanup, kept permanently for long-term history
 - **OpenSky enrichment** — automatic lookup of registration, type, manufacturer, operator
 
 ### Compact page
@@ -46,7 +50,7 @@ docker compose up -d
 | `ADSB_HOST` | tar1090 hostname | — |
 | `LEADERBOARD_HOST` | Dashboard hostname | — |
 | `POLL_INTERVAL` | Data polling interval (seconds) | `5` |
-| `CLEANUP_HOURS` | Retention for raw sightings | `48` |
+| `CLEANUP_HOURS` | Raw sighting retention (hours) | `72` |
 | `PIAWARE_FEEDER_ID` | FlightAware feeder ID | — |
 | `ADSX_UUID` | ADSB Exchange UUID | — |
 
