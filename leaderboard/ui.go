@@ -156,7 +156,54 @@ tr:hover{background:rgba(240,160,48,0.03)}
 .ext-link{color:var(--blue);text-decoration:none;font-size:10px;padding:3px 8px;border:1px solid rgba(59,143,212,0.25);border-radius:4px}
 .ext-link:hover{background:rgba(59,143,212,0.1)}
 
-/* FOOTER */
+/* DETAIL PAGE */
+.detail-page{padding:16px;max-width:900px;margin:0 auto;width:100%}
+.detail-hero{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 24px;margin-bottom:16px}
+.detail-hero .dh-reg{font-size:28px;font-weight:700;color:var(--warn);line-height:1.1}
+.detail-hero .dh-type{font-size:14px;color:var(--muted);margin-top:4px}
+.detail-hero .dh-op{font-size:11px;color:var(--muted);margin-top:2px}
+.detail-hero .dh-mil{display:inline-block;color:var(--mil);font-weight:700;font-size:11px;letter-spacing:2px;margin-top:6px;padding:2px 8px;border:1px solid rgba(224,85,85,0.3);border-radius:3px}
+.detail-hero .dh-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px}
+.detail-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.detail-stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 14px;text-align:center}
+.detail-stat .ds-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.detail-stat .ds-value{font-size:18px;font-weight:700;color:var(--white);line-height:1.2}
+.detail-stat .ds-value.g{color:var(--green)}
+.detail-stat .ds-value.a{color:var(--accent)}
+.detail-stat .ds-sub{font-size:9px;color:var(--muted);margin-top:2px}
+.detail-section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px;margin-bottom:14px}
+.detail-section h3{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}
+.pattern-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:4px;margin:3px;font-size:11px}
+.pattern-badge.orbit{background:rgba(59,143,212,0.12);border:1px solid rgba(59,143,212,0.25);color:var(--blue)}
+.pattern-badge.climbing{background:rgba(0,200,150,0.12);border:1px solid rgba(0,200,150,0.25);color:var(--green)}
+.pattern-badge.descending{background:rgba(240,160,48,0.12);border:1px solid rgba(240,160,48,0.25);color:var(--accent)}
+.pattern-badge.transit{background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.25);color:var(--mil)}
+.pattern-badge.loiter{background:rgba(160,130,200,0.12);border:1px solid rgba(160,130,200,0.25);color:#a082c8}
+.pattern-conf{font-size:9px;opacity:0.7;margin-left:2px}
+.pattern-desc{font-size:11px;color:var(--muted);margin:8px 0;line-height:1.5}
+.flight-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(26,45,74,0.4);font-size:11px;align-items:center}
+.flight-row .fr-idx{color:var(--muted);width:24px;flex-shrink:0}
+.flight-row .fr-dur{color:var(--text);font-weight:500}
+.flight-row .fr-stats{color:var(--muted)}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.photo-link{display:flex;align-items:center;justify-content:center;padding:14px 10px;border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--text);font-size:11px;font-weight:500;transition:all 0.15s;text-align:center;letter-spacing:0.5px}
+.photo-link:hover{border-color:var(--blue);background:rgba(59,143,212,0.06);color:var(--white)}
+.photo-link .pl-icon{font-size:18px;margin-right:6px}
+.analysis-loading{text-align:center;padding:20px;color:var(--muted);font-style:italic}
+.analysis-btn{background:rgba(59,143,212,0.12);border:1px solid rgba(59,143,212,0.25);color:var(--blue);padding:8px 16px;border-radius:4px;cursor:pointer;font-size:11px;letter-spacing:1px;text-transform:uppercase;transition:all 0.15s}
+.analysis-btn:hover{background:rgba(59,143,212,0.2);color:var(--white)}
+.analysis-empty{text-align:center;padding:16px;color:var(--muted);font-style:italic;font-size:11px}
+@media(max-width:768px){
+ .detail-stats{grid-template-columns:repeat(2,1fr);gap:8px}
+ .detail-stat{padding:10px 8px}
+ .detail-stat .ds-value{font-size:16px}
+ .detail-hero .dh-reg{font-size:22px}
+ .photo-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:480px){
+ .detail-stats{grid-template-columns:repeat(2,1fr);gap:6px}
+ .photo-grid{grid-template-columns:1fr}
+}
 footer{padding:12px;text-align:center;color:var(--muted);font-size:9px;letter-spacing:1px;border-top:1px solid var(--border);flex-shrink:0}
 footer a{color:var(--muted)}
 
@@ -270,6 +317,8 @@ footer a{color:var(--muted)}
  <tbody id="dayBody"><tr class="loading-row"><td colspan="7">Loading...</td></tr></tbody>
 </table></div></div></div>
 
+<div class="page" id="page-detail"><div class="detail-page" id="detailContent"><div class="empty">Select an aircraft</div></div></div>
+
 <footer><span id="footerTime"></span> &middot; <a href="https://github.com/agjmills/adsb-tracking" target="_blank">GitHub</a></footer>
 
 <!-- MODAL -->
@@ -343,7 +392,7 @@ function navigate(page){
  var titles={
   radar:'RADAR',nearest:'NEAREST',nearme:'NEAR ME',leaderboard:'LEADERBOARD',
   military:'MILITARY',distance:'DISTANCE',altitude:'ALTITUDE',speed:'SPEED',
-  recent:'RECENT',daily:'DAILY'
+  recent:'RECENT',daily:'DAILY',detail:'AIRCRAFT DETAIL'
  };
  document.getElementById('headerSubTitle').style.display='block';
  document.getElementById('headerSubTitle').textContent=titles[page]||'';
@@ -478,43 +527,179 @@ function buildNearestCard(n,title){
   '<div><span class="nc-label">SEEN</span> <span class="nc-sub">'+ago(n.seen_at)+' ago \u00b7 '+ts(n.seen_at)+'</span></div>';
 }
 
+var currentDetailIcao=null;
+
 function showAircraft(icao){
- var overlay=document.getElementById('modalOverlay');
- document.getElementById('modalTitle').textContent=icao;
- document.getElementById('modalBody').innerHTML='<div class="empty">Loading...</div>';
- overlay.classList.add('open');
+ currentDetailIcao=icao;
+ window.location.hash='detail/'+icao;
+ navigateDetail(icao);
+}
+
+function navigateDetail(icao){
+ currentPage='detail';
+ document.getElementById('mainHome').style.display='none';
+ document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+ var el=document.getElementById('page-detail');
+ if(el){el.classList.add('active')}
+ document.getElementById('backBtn').style.display='inline-block';
+ document.getElementById('headerSub').style.display='none';
+ document.getElementById('headerSubTitle').style.display='block';
+ document.getElementById('headerSubTitle').textContent='AIRCRAFT DETAIL';
+ document.getElementById('detailContent').innerHTML='<div class="empty">Loading...</div>';
+ loadAircraftDetail(icao);
+}
+
+function loadAircraftDetail(icao){
  fetch('/api/aircraft/'+icao).then(function(r){return r.json()}).then(function(a){
-  document.getElementById('modalTitle').textContent=a.reg||a.last_callsign||a.icao24;
-  var typ=[a.manufacturer,a.model].filter(Boolean).join(' ')||'-';
-  var links=(a.reg?'<a class="ext-link" target="_blank" href="https://www.planespotters.net/search?q='+encodeURIComponent(a.reg)+'">PLANESPOTTERS</a><a class="ext-link" target="_blank" href="https://www.flightradar24.com/data/aircraft/'+encodeURIComponent(a.reg)+'">FR24</a>':'')+'<a class="ext-link" target="_blank" href="https://globe.adsbexchange.com/?icao='+icao+'">ADSBX</a>';
-  document.getElementById('modalBody').innerHTML=
-   '<div class="m-row"><span class="m-label">ICAO24</span><span class="m-value">'+a.icao24+'</span></div>'+
-   '<div class="m-row"><span class="m-label">Registration</span><span class="m-value big">'+(a.reg||'-')+'</span></div>'+
-   '<div class="m-row"><span class="m-label">Type</span><span class="m-value">'+typ+'</span></div>'+
-   '<div class="m-row"><span class="m-label">Operator</span><span class="m-value">'+(a.operator||'-')+'</span></div>'+
-   '<div class="m-row"><span class="m-label">Country</span><span class="m-value">'+flag(a.country_flag)+(a.country||'-')+'</span></div>'+
-   '<div class="m-row"><span class="m-label">Military</span><span class="m-value">'+(a.is_military?'<span style="color:var(--mil);font-weight:700">YES</span>':'No')+'</span></div>'+
-   '<div class="m-row"><span class="m-label">Emitter</span><span class="m-value">'+(a.category||'-')+'</span></div>'+
-   '<div class="m-row"><span class="m-label">Callsign</span><span class="m-value" style="color:var(--warn)">'+(a.last_callsign||'-')+'</span></div>'+
-   '<div class="m-row"><span class="m-label">Sightings</span><span class="m-value gr">'+(a.total_sightings||0).toLocaleString()+'</span></div>'+
-   '<div class="m-row"><span class="m-label">First Seen</span><span class="m-value">'+ts(a.first_seen)+'</span></div>'+
-   '<div class="m-row"><span class="m-label">Last Seen</span><span class="m-value">'+ts(a.last_seen)+' ('+ago(a.last_seen)+' ago)</span></div>'+
-   '<div class="m-row"><span class="m-label">Min/Max Dist</span><span class="m-value">'+dC(a.min_dist_nm)+' / '+dC(a.max_dist_nm)+'</span></div>'+
-   '<div class="m-row"><span class="m-label">Min/Max Alt</span><span class="m-value">'+(a.min_alt_ft||'-').toLocaleString()+' / '+(a.max_alt_ft||'-').toLocaleString()+' ft</span></div>'+
-   '<div class="m-row"><span class="m-label">Max Speed</span><span class="m-value gr">'+fmt(a.max_speed_kt,0)+' kt</span></div>'+
-   '<div class="m-row"><span class="m-label">Last Position</span><span class="m-value">'+fmt(a.last_lat,4)+', '+fmt(a.last_lon,4)+'</span></div>'+
-   '<div class="modal-links">'+links+'</div>';
- }).catch(function(){document.getElementById('modalBody').innerHTML='<div class="empty">Failed to load</div>'});
+  renderDetailInfo(a,icao);
+  loadAnalysis(icao);
+ }).catch(function(){
+  document.getElementById('detailContent').innerHTML='<div class="empty">Failed to load</div>';
+ });
+}
+
+function renderDetailInfo(a,icao){
+ var typ=[a.manufacturer,a.model].filter(Boolean).join(' ')||'-';
+ var reg=a.reg||'';
+ var cs=a.last_callsign||'';
+ var totalFlights=a.total_flights||0;
+
+ var h='';
+ h+='<div class="detail-hero">';
+ h+='<div class="dh-row"><div>';
+ h+='<div class="dh-reg">'+(reg||cs||a.icao24)+'</div>';
+ h+='<div class="dh-type">'+typ+'</div>';
+ if(a.operator)h+='<div class="dh-op">'+a.operator+'</div>';
+ h+='</div><div style="text-align:right">';
+ h+='<div style="font-size:12px;color:var(--muted)">'+a.icao24+'</div>';
+ h+='<div style="font-size:12px;color:var(--text);margin-top:2px">'+flag(a.country_flag)+(a.country||'-')+'</div>';
+ if(a.is_military)h+='<div class="dh-mil">MILITARY</div>';
+ h+='</div></div></div>';
+
+ h+='<div class="detail-stats">';
+ h+=statTile('FLIGHTS',totalFlights.toLocaleString(),'g','unique visits');
+ h+=statTile('SIGHTINGS',(a.total_sightings||0).toLocaleString(),'a','total pings');
+ h+=statTile('FIRST SEEN','', '', ts(a.first_seen));
+ h+=statTile('LAST SEEN','', '', ago(a.last_seen)+' ago');
+ h+=statTile('DISTANCE',dC(a.min_dist_nm)+' / '+dC(a.max_dist_nm),'', 'min / max');
+ h+=statTile('ALTITUDE',(a.min_alt_ft||'-').toLocaleString()+' / '+(a.max_alt_ft||'-').toLocaleString()+' ft','','min / max');
+ h+=statTile('MAX SPEED',fmt(a.max_speed_kt,0)+' kt','','');
+ h+=statTile('EMITTER',a.category||'-','','');
+ h+='</div>';
+
+ h+='<div class="detail-section"><h3>LAST POSITION</h3>';
+ h+='<div style="font-size:12px;color:var(--text)">'+fmt(a.last_lat,4)+', '+fmt(a.last_lon,4);
+ h+=' &middot; Alt: '+(a.last_alt||'-').toLocaleString()+' ft';
+ h+=' &middot; Spd: '+fmt(a.last_speed,0)+' kt';
+ h+=' &middot; '+ts(a.last_seen_pos)+'</div>';
+ h+='</div>';
+
+ h+='<div class="detail-section"><h3>ACTIVITY ANALYSIS</h3>';
+ h+='<div id="analysisSection"><div class="analysis-loading">Analyzing flight patterns...</div></div>';
+ h+='</div>';
+
+ h+='<div class="detail-section"><h3>PHOTOS</h3>';
+ h+='<div class="photo-grid">';
+ var q=reg||typ||a.icao24;
+ h+='<a class="photo-link" target="_blank" href="https://www.planespotters.net/search?q='+encodeURIComponent(reg||typ)+'"><span class="pl-icon">&#9992;</span> Planespotters</a>';
+ h+='<a class="photo-link" target="_blank" href="https://www.jetphotos.com/photo/keyword/'+encodeURIComponent(reg||typ)+'"><span class="pl-icon">&#128247;</span> JetPhotos</a>';
+ h+='<a class="photo-link" target="_blank" href="https://www.airliners.net/search?keywords='+encodeURIComponent(reg||a.icao24)+'"><span class="pl-icon">&#9992;</span> Airliners</a>';
+ h+='</div></div>';
+
+ h+='<div class="detail-section"><h3>EXTERNAL LINKS</h3>';
+ h+='<div class="photo-grid">';
+ h+='<a class="photo-link" target="_blank" href="https://globe.adsbexchange.com/?icao='+icao+'"><span class="pl-icon">&#127758;</span> ADSBx Globe</a>';
+ if(reg)h+='<a class="photo-link" target="_blank" href="https://www.flightradar24.com/data/aircraft/'+encodeURIComponent(reg)+'"><span class="pl-icon">&#128064;</span> FlightRadar24</a>';
+ h+='<a class="photo-link" target="_blank" href="https://opensky-network.org/aircraft-profile?icao24='+icao+'"><span class="pl-icon">&#128225;</span> OpenSky</a>';
+ h+='</div></div>';
+
+ document.getElementById('detailContent').innerHTML=h;
+}
+
+function loadAnalysis(icao){
+ fetch('/api/aircraft/'+icao+'/analysis').then(function(r){return r.json()}).then(function(an){
+  if(an.error){
+   document.getElementById('analysisSection').innerHTML='<div class="analysis-empty">'+'Not enough data &mdash; need at least 5 recent position reports'+'</div>';
+   return;
+  }
+  var h='';
+
+  if(an.previous_callsigns&&an.previous_callsigns.length>0){
+   h+='<div style="margin-bottom:12px"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Previous Callsigns</div>';
+   h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+   for(var i=0;i<an.previous_callsigns.length;i++){
+    var cs=an.previous_callsigns[i];
+    h+='<span style="background:rgba(240,160,48,0.08);border:1px solid rgba(240,160,48,0.2);color:var(--warn);padding:3px 8px;border-radius:3px;font-size:11px;font-weight:500">'+cs.callsign+'</span>';
+   }
+   h+='</div></div>';
+  }
+
+  if(an.patterns&&an.patterns.length>0){
+   h+='<div style="margin-bottom:10px">';
+   for(var i=0;i<an.patterns.length;i++){
+    var p=an.patterns[i];
+    h+='<div class="pattern-badge '+p.type+'">';
+    if(p.type==='orbit')h+='&#8635; ';
+    else if(p.type==='climbing')h+='&#8593; ';
+    else if(p.type==='descending')h+='&#8595; ';
+    else if(p.type==='transit')h+='&#10145; ';
+    else if(p.type==='loiter')h+='&#8634; ';
+    h+=p.type.toUpperCase();
+    h+='<span class="pattern-conf">'+Math.round(p.confidence*100)+'%</span>';
+    h+='</div>';
+   }
+   h+='</div>';
+   for(var i=0;i<an.patterns.length;i++){
+    h+='<div class="pattern-desc">'+an.patterns[i].description+'</div>';
+   }
+  }else{
+   h+='<div class="analysis-empty">No distinctive patterns detected in the recent '+an.sightings_used+' sightings</div>';
+  }
+
+  if(an.recent_flights&&an.recent_flights.length>0){
+   h+='<div style="margin-top:12px"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Recent Movements ('+an.recent_flights.length+' flights'+(an.historical_flights?' &middot; '+an.historical_flights+' total all-time':'')+')</div>';
+   for(var i=0;i<Math.min(an.recent_flights.length,8);i++){
+    var f=an.recent_flights[i];
+    var dur=f.end_seen-f.start_seen;
+    var durStr=dur<60?dur+'s':dur<3600?Math.floor(dur/60)+'m':Math.floor(dur/3600)+'h'+Math.floor((dur%3600)/60)+'m';
+    h+='<div class="flight-row">';
+    h+='<span class="fr-idx">#'+(an.recent_flights.length-i)+'</span>';
+    h+='<span class="fr-dur">'+(f.callsign?f.callsign:durStr)+'</span>';
+    h+='<span class="fr-stats">'+f.sightings+' pings &middot; '+durStr+' &middot; '+f.min_alt.toLocaleString()+'&ndash;'+f.max_alt.toLocaleString()+' ft &middot; '+fmt(f.max_speed,0)+' kt</span>';
+    h+='</div>';
+   }
+   if(an.recent_flights.length>8)h+='<div style="font-size:10px;color:var(--muted);text-align:center;padding:6px">+ '+(an.recent_flights.length-8)+' more flights</div>';
+   h+='</div>';
+  }
+
+  h+='<div style="margin-top:10px;font-size:9px;color:var(--muted)">Analyzed '+an.sightings_used+' sightings over '+fmt(an.time_span_min,1)+' minutes</div>';
+
+  document.getElementById('analysisSection').innerHTML=h;
+ }).catch(function(){
+  document.getElementById('analysisSection').innerHTML='<div class="analysis-empty">Analysis unavailable</div>';
+ });
+}
+
+function statTile(label,value,cls,sub){
+ return '<div class="detail-stat"><div class="ds-label">'+label+'</div><div class="ds-value '+cls+'">'+value+'</div>'+(sub?'<div class="ds-sub">'+sub+'</div>':'')+'</div>';
 }
 
 function closeModal(){document.getElementById('modalOverlay').classList.remove('open')}
 document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal()});
 
 var hash=window.location.hash.replace('#','');
-if(hash&&document.getElementById('page-'+hash)){navigate(hash)}
+if(hash){
+ if(hash.startsWith('detail/')){
+  var icao=hash.split('/')[1];
+  if(icao)navigateDetail(icao);
+ }else if(document.getElementById('page-'+hash)){navigate(hash)}
+}
 window.addEventListener('hashchange',function(){
  var h=window.location.hash.replace('#','');
- if(h&&document.getElementById('page-'+h)){navigate(h)}
+ if(h.startsWith('detail/')){
+  var icao=h.split('/')[1];
+  if(icao)navigateDetail(icao);
+ }else if(h&&document.getElementById('page-'+h)){navigate(h)}
  else if(!h){goHome()}
 });
 

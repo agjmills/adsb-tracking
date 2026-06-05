@@ -35,7 +35,7 @@ func main() {
 		dbPath = "/data/leaderboard.db"
 	}
 	pollInterval := getenvInt("POLL_INTERVAL", 5)
-	cleanupHours := getenvInt("CLEANUP_HOURS", 24)
+	cleanupHours := getenvInt("CLEANUP_HOURS", 72)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5000"
@@ -70,7 +70,7 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				db.cleanOldSightings(cleanupHours)
+				db.compressAndClean(cleanupHours)
 			}
 		}
 	}()
@@ -103,10 +103,41 @@ func main() {
 		writeJSON(w, rows)
 	})
 	mux.HandleFunc("/api/aircraft/", func(w http.ResponseWriter, r *http.Request) {
-		icao := strings.TrimPrefix(r.URL.Path, "/api/aircraft/")
+		path := strings.TrimPrefix(r.URL.Path, "/api/aircraft/")
+		parts := strings.SplitN(path, "/", 2)
+		icao := parts[0]
 		if icao == "" {
 			http.Error(w, "missing icao", 400)
 			return
+		}
+		if len(parts) == 2 {
+			switch parts[1] {
+			case "sightings":
+				limit := getQueryInt(r.URL.Query(), "limit", 200)
+				rows, err := db.getAircraftSightings(icao, limit)
+				if err != nil {
+					http.Error(w, err.Error(), 500)
+					return
+				}
+				writeJSON(w, rows)
+				return
+			case "analysis":
+				limit := getQueryInt(r.URL.Query(), "limit", 200)
+				rawSightings, err := db.getAircraftSightings(icao, limit)
+				if err != nil {
+					http.Error(w, err.Error(), 500)
+					return
+				}
+				callsigns, _ := db.getAircraftCallsigns(icao)
+				rollups, _ := db.getAircraftRollups(icao, 1000)
+				analysis := analyzeSightings(icao, rawSightings, rollups, callsigns)
+				if analysis == nil {
+					writeJSON(w, map[string]string{"error": "not enough data for analysis"})
+					return
+				}
+				writeJSON(w, analysis)
+				return
+			}
 		}
 		ac, err := db.getAircraft(icao)
 		if err != nil {
