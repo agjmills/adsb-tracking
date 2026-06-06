@@ -51,7 +51,8 @@ docker compose up -d
 | `LEADERBOARD_HOST` | Dashboard hostname | — |
 | `POLL_INTERVAL` | Data polling interval (seconds) | `5` |
 | `CLEANUP_HOURS` | Raw sighting retention (hours) | `72` |
-| `PIAWARE_FEEDER_ID` | FlightAware feeder ID | — |
+| `FLIGHTAWARE_SITE_ID` | FlightAware stats site number (numeric) | — |
+| `PIAWARE_FEEDER_ID` | Fallback FlightAware ID (deprecated) | — |
 | `ADSX_UUID` | ADSB Exchange UUID | — |
 
 ## Architecture

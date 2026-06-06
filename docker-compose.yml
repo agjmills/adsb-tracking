@@ -69,6 +69,7 @@ services:
       - POLL_INTERVAL=${POLL_INTERVAL:-5}
       - CLEANUP_HOURS=${CLEANUP_HOURS:-48}
       - PORT=5000
+      - FLIGHTAWARE_SITE_ID=${FLIGHTAWARE_SITE_ID:-}
       - TZ=${TZ:-UTC}
     networks:
       - proxy-network

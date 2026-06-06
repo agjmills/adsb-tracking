@@ -87,7 +87,10 @@ func main() {
 		stats.SiteLat = homeLat
 		stats.SiteLon = homeLon
 		stats.SiteAlt = siteAlt
-		stats.FeederID = os.Getenv("PIAWARE_FEEDER_ID")
+		stats.FlightAwareSiteID = os.Getenv("FLIGHTAWARE_SITE_ID")
+		if stats.FlightAwareSiteID == "" {
+			stats.FlightAwareSiteID = os.Getenv("PIAWARE_FEEDER_ID")
+		}
 		writeJSON(w, stats)
 	})
 	mux.HandleFunc("/api/leaderboard", func(w http.ResponseWriter, r *http.Request) {
