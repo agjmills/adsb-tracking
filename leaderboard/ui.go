@@ -127,6 +127,9 @@ tr:hover{background:rgba(240,160,48,0.03)}
 .icao-link:hover{text-decoration:underline}
 .callsign-link{color:var(--warn);font-weight:600}
 .mil-tag{color:var(--mil);font-weight:700;font-size:10px;margin-left:4px}
+.notable-tag{display:inline-block;color:var(--accent);font-weight:700;font-size:10px;margin-left:4px;padding:1px 6px;border:1px solid rgba(240,160,48,0.3);border-radius:3px;letter-spacing:1px}
+.notable-card{border-color:rgba(240,160,48,0.35)}
+.notable-card:hover{border-color:var(--accent)}
 .cat-tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;background:rgba(59,143,212,0.1);color:var(--blue);font-weight:600}
 .bright{color:var(--white);font-weight:600}
 .dim{color:var(--muted)}
@@ -266,6 +269,7 @@ footer a{color:var(--muted)}
   <div class="nav-card near-card" onclick="navigate('nearme')"><div class="nav-icon">📍</div><div class="nav-label">Near Me</div><div class="nav-desc">What's overhead?</div></div>
   <div class="nav-card" onclick="navigate('leaderboard')"><div class="nav-icon">📋</div><div class="nav-label">Leaderboard</div><div class="nav-desc">Most seen planes</div></div>
   <div class="nav-card mil-card" onclick="navigate('military')"><div class="nav-icon">⚔</div><div class="nav-label">Military</div><div class="nav-desc">Recent military activity</div></div>
+  <div class="nav-card notable-card" onclick="navigate('notable')"><div class="nav-icon">💎</div><div class="nav-label">Notable</div><div class="nav-desc">Rare &amp; unusual types</div></div>
   <div class="nav-card" onclick="navigate('distance')"><div class="nav-icon">📏</div><div class="nav-label">Distance</div><div class="nav-desc">Furthest tracked</div></div>
   <div class="nav-card" onclick="navigate('altitude')"><div class="nav-icon">⛰</div><div class="nav-label">Altitude</div><div class="nav-desc">Highest tracked</div></div>
   <div class="nav-card" onclick="navigate('speed')"><div class="nav-icon">⚡</div><div class="nav-label">Speed</div><div class="nav-desc">Fastest tracked</div></div>
@@ -290,6 +294,11 @@ footer a{color:var(--muted)}
 <div class="page" id="page-military"><div class="table-page"><div class="table-wrap"><table>
  <thead><tr><th>ICAO24</th><th>Callsign</th><th>Reg</th><th class="hide-mob">Type</th><th>Alt</th><th class="hide-mob">Spd</th><th class="hide-mob">Trk</th><th>Dist</th><th class="hide-mob">Brg</th><th>Seen</th></tr></thead>
  <tbody id="milBody"><tr class="loading-row"><td colspan="10">Loading...</td></tr></tbody>
+</table></div></div></div>
+
+<div class="page" id="page-notable"><div class="table-page"><div class="table-wrap"><table>
+ <thead><tr><th>Tag</th><th>ICAO24</th><th>Callsign</th><th>Reg</th><th class="hide-mob">Type</th><th>Alt</th><th class="hide-mob">Spd</th><th>Dist</th><th>Op</th><th>Seen</th></tr></thead>
+ <tbody id="ntbBody"><tr class="loading-row"><td colspan="10">Loading...</td></tr></tbody>
 </table></div></div></div>
 
 <div class="page" id="page-distance"><div class="table-page"><div class="table-wrap"><table>
@@ -391,7 +400,7 @@ function navigate(page){
  document.getElementById('headerSub').style.display='none';
  var titles={
   radar:'RADAR',nearest:'NEAREST',nearme:'NEAR ME',leaderboard:'LEADERBOARD',
-  military:'MILITARY',distance:'DISTANCE',altitude:'ALTITUDE',speed:'SPEED',
+  military:'MILITARY',notable:'NOTABLE',distance:'DISTANCE',altitude:'ALTITUDE',speed:'SPEED',
   recent:'RECENT',daily:'DAILY',detail:'AIRCRAFT DETAIL'
  };
  document.getElementById('headerSubTitle').style.display='block';
@@ -416,6 +425,7 @@ function loadPage(page){
   case'nearme':loadNearMe();break;
   case'leaderboard':loadTable('lbBody','/api/leaderboard?sort=sightings&limit=100',leaderboardRows);break;
   case'military':loadTable('milBody','/api/military?limit=200',militaryRows);break;
+  case'notable':loadTable('ntbBody','/api/notable?age=1800&limit=100',notableRows);break;
   case'distance':loadTable('distBody','/api/leaderboard?sort=distance&limit=100',distanceRows);break;
   case'altitude':loadTable('altBody','/api/leaderboard?sort=altitude&limit=100',altitudeRows);break;
   case'speed':loadTable('spdBody','/api/leaderboard?sort=speed&limit=100',speedRows);break;
@@ -445,6 +455,11 @@ function leaderboardRows(data){var h='';
 function militaryRows(data){var h='';
  for(var i=0;i<data.length;i++){var a=data[i];
   h+='<tr><td>'+icaoL(a.icao24)+' <span class="mil-tag">MIL</span></td><td>'+csL(a.callsign)+'</td><td>'+(a.reg||'<span class="dim">-</span>')+'</td><td class="hide-mob">'+([a.manufacturer,a.model].filter(Boolean).join(' ')||'<span class="dim">-</span>')+'</td><td class="bright">'+(a.alt_ft||'-').toLocaleString()+' ft</td><td class="hide-mob">'+fmt(a.speed_kt,0)+' kt</td><td class="hide-mob">'+fmt(a.track,0)+'°</td><td>'+fmt(a.dist_nm,1)+' nm</td><td class="hide-mob">'+(a.bearing||'-')+'°</td><td>'+ago(a.seen_at)+'</td></tr>';
+ }return h;}
+
+function notableRows(data){var h='';
+ for(var i=0;i<data.length;i++){var a=data[i];
+  h+='<tr><td><span class="notable-tag">'+a.notable_label+'</span></td><td>'+icaoL(a.icao24)+(a.is_military?' <span class="mil-tag">MIL</span>':'')+'</td><td>'+csL(a.callsign)+'</td><td>'+(a.reg||'<span class="dim">-</span>')+'</td><td class="hide-mob">'+([a.manufacturer,a.model].filter(Boolean).join(' ')||'<span class="dim">-</span>')+'</td><td class="bright">'+(a.alt_ft||'-').toLocaleString()+' ft</td><td class="hide-mob">'+fmt(a.speed_kt,0)+' kt</td><td>'+fmt(a.dist_nm,1)+' nm</td><td class="hide-mob">'+(a.operator||'<span class="dim">-</span>')+'</td><td>'+ago(a.seen_at)+'</td></tr>';
  }return h;}
 
 function distanceRows(data){var h='';
@@ -515,6 +530,7 @@ function buildNearestCard(n,title){
  var op=n.operator||'';
  return '<h2>'+title+'</h2>'+
   (cs!=='--'?'<div class="nc-callsign">'+cs+'</div>':'')+
+  (n.is_notable?'<div class="nc-mil" style="color:var(--accent);border-color:rgba(240,160,48,0.3)">NOTABLE: '+n.notable_label+'</div>':'')+
   (reg||typ||op?'<div class="nc-reg">'+[reg,typ,op].filter(Boolean).join(' \u00b7 ')+'</div>':'')+
   (n.is_military?'<div class="nc-mil">MILITARY</div>':'')+
   '<div class="nc-grid">'+

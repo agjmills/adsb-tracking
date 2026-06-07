@@ -634,6 +634,9 @@ func (d *DB) getNearest(maxAlt int, maxDistNM float64, seenSecs int) (*nearestIn
 	err := row.Scan(&n.ICAO24, &n.Callsign, &n.Lat, &n.Lon, &n.AltitudeFt, &n.SpeedKt, &n.Track, &n.DistNM, &n.Bearing, &n.SeenAt,
 		&n.Registration, &n.Manufacturer, &n.Model, &n.Operator, &n.Country, &n.CountryFlag, &mil)
 	n.IsMilitary = mil == 1
+	if n.Manufacturer != nil && n.Model != nil {
+		n.IsNotable, n.NotableLabel = isNotable(*n.Manufacturer, *n.Model)
+	}
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -641,6 +644,42 @@ func (d *DB) getNearest(maxAlt int, maxDistNM float64, seenSecs int) (*nearestIn
 		return nil, err
 	}
 	return &n, nil
+}
+
+func (d *DB) getRecentNotable(maxAgeSec int, limit int) ([]notableResult, error) {
+	cutoff := time.Now().Unix() - int64(maxAgeSec)
+	rows, err := d.Query(`SELECT s.icao24, s.callsign, s.lat, s.lon, s.altitude_ft, s.ground_speed_kt, s.track,
+		s.distance_nm, s.bearing_deg, s.category, s.seen_at,
+		a.registration, a.manufacturer, a.model, a.operator_name, a.country, a.country_flag, a.is_military
+		FROM sightings s
+		JOIN aircraft a ON s.icao24 = a.icao24
+		JOIN (SELECT icao24, MAX(id) AS max_id FROM sightings WHERE seen_at > ? GROUP BY icao24) latest
+			ON s.icao24 = latest.icao24 AND s.id = latest.max_id
+		WHERE a.manufacturer != ''
+		ORDER BY s.distance_nm ASC
+		LIMIT ?`, cutoff, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []notableResult
+	for rows.Next() {
+		var r notableResult
+		var mil int
+		err := rows.Scan(&r.ICAO24, &r.Callsign, &r.Lat, &r.Lon, &r.AltFt, &r.SpeedKt, &r.Track,
+			&r.DistNM, &r.Bearing, &r.Category, &r.SeenAt,
+			&r.Registration, &r.Manufacturer, &r.Model, &r.Operator, &r.Country, &r.CountryFlag, &mil)
+		if err != nil {
+			continue
+		}
+		r.IsMilitary = mil == 1
+		notable, label := isNotable(r.Manufacturer, r.Model)
+		if notable {
+			r.NotableLabel = label
+			out = append(out, r)
+		}
+	}
+	return out, rows.Err()
 }
 
 func (d *DB) fixMilitaryFlags() {
@@ -928,4 +967,6 @@ type nearestInfo struct {
 	Country      *string  `json:"country"`
 	CountryFlag  *string  `json:"country_flag"`
 	IsMilitary   bool     `json:"is_military"`
+	IsNotable    bool     `json:"is_notable"`
+	NotableLabel string   `json:"notable_label"`
 }

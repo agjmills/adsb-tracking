@@ -179,6 +179,16 @@ func main() {
 		}
 		writeJSON(w, nearest)
 	})
+	mux.HandleFunc("/api/notable", func(w http.ResponseWriter, r *http.Request) {
+		limit := getQueryInt(r.URL.Query(), "limit", 50)
+		maxAge := getQueryInt(r.URL.Query(), "age", 1800)
+		rows, err := db.getRecentNotable(maxAge, limit)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		writeJSON(w, rows)
+	})
 	mux.HandleFunc("/api/daily", func(w http.ResponseWriter, r *http.Request) {
 		limit := getQueryInt(r.URL.Query(), "limit", 30)
 		rows, err := db.getDailyStats(limit)
