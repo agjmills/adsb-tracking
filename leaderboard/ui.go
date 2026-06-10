@@ -355,7 +355,7 @@ function loadStats(){
   var fa=document.getElementById('faCard');
    if(s.flightaware_site_id){
     fa.style.display='flex';
-    fa.onclick=function(){window.open('https://flightaware.com/adsb/stats/user/'+encodeURIComponent(s.flightaware_site_id),'_blank')};
+     fa.onclick=function(){window.open('https://www.flightaware.com/adsb/stats/user/'+encodeURIComponent(s.flightaware_site_id),'_blank')};
   }
   document.getElementById('headerSub').textContent=s.site_name+' \u00b7 '+fmt(s.site_lat,3)+'\u00b0N '+fmt(Math.abs(s.site_lon),3)+'\u00b0'+(s.site_lon<0?'W':'E')+' \u00b7 '+s.site_alt+' AMSL';
   document.getElementById('footerTime').textContent='Updated '+new Date().toLocaleTimeString();

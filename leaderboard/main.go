@@ -87,7 +87,10 @@ func main() {
 		stats.SiteLat = homeLat
 		stats.SiteLon = homeLon
 		stats.SiteAlt = siteAlt
-		stats.FlightAwareSiteID = os.Getenv("FLIGHTAWARE_SITE_ID")
+		stats.FlightAwareSiteID = os.Getenv("FLIGHTAWARE_USERNAME")
+		if stats.FlightAwareSiteID == "" {
+			stats.FlightAwareSiteID = os.Getenv("FLIGHTAWARE_SITE_ID")
+		}
 		if stats.FlightAwareSiteID == "" {
 			stats.FlightAwareSiteID = os.Getenv("PIAWARE_FEEDER_ID")
 		}

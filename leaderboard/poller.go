@@ -45,9 +45,33 @@ func runPoller(ctx context.Context, db *DB, dumpURL string, homeLat, homeLon flo
 			}
 			now := time.Now().Unix()
 			for _, a := range dr.Aircraft {
-				if a.Hex == nil || a.Lat == nil || a.Lon == nil {
+				if a.Hex == nil {
 					continue
 				}
+				hex := *a.Hex
+
+				callsign := ""
+				if a.Flight != nil {
+					callsign = *a.Flight
+				}
+
+				isMil := isMilitaryHex(hex) || isMilitaryCallsign(callsign)
+
+				if a.Lat == nil || a.Lon == nil {
+					if !isMil {
+						continue
+					}
+				}
+
+				lat := 0.0
+				lon := 0.0
+				if a.Lat != nil {
+					lat = *a.Lat
+				}
+				if a.Lon != nil {
+					lon = *a.Lon
+				}
+
 				alt := coalesceInt(a.AltBaro, a.AltGeom)
 				if alt == nil {
 					altVal := 0
@@ -65,22 +89,20 @@ func runPoller(ctx context.Context, db *DB, dumpURL string, homeLat, homeLon flo
 				if a.RSSI != nil {
 					rssi = int(*a.RSSI)
 				}
-				callsign := ""
-				if a.Flight != nil {
-					callsign = *a.Flight
-				}
 				cat := ""
 				if a.Category != nil {
 					cat = *a.Category
 				}
 
-				dist := haversineNM(homeLat, homeLon, *a.Lat, *a.Lon)
-				bearing := int(math.Round(initialBearing(homeLat, homeLon, *a.Lat, *a.Lon)))
+				dist := 0.0
+				bearing := 0
+				if lat != 0 || lon != 0 {
+					dist = haversineNM(homeLat, homeLon, lat, lon)
+					bearing = int(math.Round(initialBearing(homeLat, homeLon, lat, lon)))
+				}
 
-				isMil := isMilitaryHex(*a.Hex) || isMilitaryCallsign(callsign)
-
-				if err := db.upsertSighting(*a.Hex, callsign, cat, *a.Lat, *a.Lon, *alt, rssi, gs, track, dist, bearing, now, isMil); err != nil {
-					log.Printf("db upsert error for %s: %v", *a.Hex, err)
+				if err := db.upsertSighting(hex, callsign, cat, lat, lon, *alt, rssi, gs, track, dist, bearing, now, isMil); err != nil {
+					log.Printf("db upsert error for %s: %v", hex, err)
 				}
 			}
 		}

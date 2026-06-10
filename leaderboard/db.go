@@ -52,6 +52,9 @@ func (d *DB) migrate() error {
 		last_lon REAL,
 		last_altitude INTEGER,
 		last_speed REAL,
+		last_track REAL DEFAULT 0,
+		last_dist_nm REAL DEFAULT 0,
+		last_bearing INTEGER DEFAULT 0,
 		last_seen_pos INTEGER DEFAULT 0,
 		enrichment_ts INTEGER DEFAULT 0,
 		updated_at INTEGER NOT NULL
@@ -108,6 +111,9 @@ func (d *DB) migrate() error {
 	}
 	_, _ = d.Exec("ALTER TABLE aircraft ADD COLUMN min_ground_speed_kt REAL")
 	_, _ = d.Exec("ALTER TABLE aircraft ADD COLUMN total_flights INTEGER DEFAULT 1")
+	_, _ = d.Exec("ALTER TABLE aircraft ADD COLUMN last_track REAL DEFAULT 0")
+	_, _ = d.Exec("ALTER TABLE aircraft ADD COLUMN last_dist_nm REAL DEFAULT 0")
+	_, _ = d.Exec("ALTER TABLE aircraft ADD COLUMN last_bearing INTEGER DEFAULT 0")
 	return nil
 }
 
@@ -144,11 +150,11 @@ func (d *DB) upsertSighting(icao24, callsign, category string, lat, lon float64,
 		}
 		_, err = tx.Exec(`INSERT INTO aircraft (icao24, country, country_flag, is_military, category, first_seen, last_seen, last_callsign,
 			total_sightings, total_flights, min_distance_nm, max_distance_nm, min_altitude_ft, max_altitude_ft, max_ground_speed_kt, min_ground_speed_kt,
-			last_lat, last_lon, last_altitude, last_speed, last_seen_pos, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			last_lat, last_lon, last_altitude, last_speed, last_track, last_dist_nm, last_bearing, last_seen_pos, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			icao24, ci.Name, ci.Flag, boolToInt(isMil), category, seenAt, seenAt, callsign,
 			distNM, distNM, alt, alt, gs, gs,
-			lat, lon, alt, gs, seenAt, seenAt)
+			lat, lon, alt, gs, track, distNM, bearing, seenAt, seenAt)
 	} else {
 		_, err = tx.Exec(`UPDATE aircraft SET
 			last_seen = ?, last_callsign = CASE WHEN ? != '' THEN ? ELSE last_callsign END,
@@ -162,6 +168,7 @@ func (d *DB) upsertSighting(icao24, callsign, category string, lat, lon float64,
 			max_ground_speed_kt = MAX(COALESCE(max_ground_speed_kt, 0), ?),
 			min_ground_speed_kt = CASE WHEN ? > 0 THEN MIN(COALESCE(min_ground_speed_kt, ?), ?) ELSE min_ground_speed_kt END,
 			last_lat = ?, last_lon = ?, last_altitude = ?, last_speed = ?,
+			last_track = ?, last_dist_nm = ?, last_bearing = ?,
 			last_seen_pos = ?, updated_at = ?
 			WHERE icao24 = ?`,
 			seenAt, callsign, callsign,
@@ -172,6 +179,7 @@ func (d *DB) upsertSighting(icao24, callsign, category string, lat, lon float64,
 			gs,
 			gs, gs, gs,
 			lat, lon, alt, gs,
+			track, distNM, bearing,
 			seenAt, seenAt,
 			icao24)
 	}
@@ -375,6 +383,9 @@ type aircraftRow struct {
 	LastLon        float64 `json:"last_lon"`
 	LastAlt        int     `json:"last_alt"`
 	LastSpeed      float64 `json:"last_speed"`
+	LastTrack      float64 `json:"last_track"`
+	LastDistNM     float64 `json:"last_dist_nm"`
+	LastBearing    int     `json:"last_bearing"`
 	LastSeenPos    int64   `json:"last_seen_pos"`
 	UpdatedAt      int64   `json:"updated_at"`
 }
@@ -410,6 +421,7 @@ func (d *DB) getLeaderboard(sortBy string, militaryOnly bool, limit int) ([]airc
 		COALESCE(max_ground_speed_kt,0),
 		COALESCE(last_lat,0), COALESCE(last_lon,0),
 		COALESCE(last_altitude,0), COALESCE(last_speed,0),
+		COALESCE(last_track,0), COALESCE(last_dist_nm,0), COALESCE(last_bearing,0),
 		last_seen_pos, updated_at
 		FROM aircraft %s ORDER BY %s LIMIT ?`, milFilter, orderBy)
 
@@ -430,6 +442,7 @@ func (d *DB) getAircraft(icao24 string) (*aircraftRow, error) {
 		COALESCE(max_ground_speed_kt,0),
 		COALESCE(last_lat,0), COALESCE(last_lon,0),
 		COALESCE(last_altitude,0), COALESCE(last_speed,0),
+		COALESCE(last_track,0), COALESCE(last_dist_nm,0), COALESCE(last_bearing,0),
 		last_seen_pos, updated_at
 		FROM aircraft WHERE icao24 = ?`, icao24)
 	var a aircraftRow
@@ -439,6 +452,7 @@ func (d *DB) getAircraft(icao24 string) (*aircraftRow, error) {
 		&a.FirstSeen, &a.LastSeen, &a.TotalSightings, &a.TotalFlights,
 		&a.MinDistNM, &a.MaxDistNM, &a.MinAltFt, &a.MaxAltFt, &a.MaxSpeedKt,
 		&a.LastLat, &a.LastLon, &a.LastAlt, &a.LastSpeed,
+		&a.LastTrack, &a.LastDistNM, &a.LastBearing,
 		&a.LastSeenPos, &a.UpdatedAt)
 	a.IsMilitary = mil == 1
 	if err != nil {
@@ -569,15 +583,13 @@ func (d *DB) getRecentMilitarySightings(limit int) ([]militarySightingRow, error
 	if limit <= 0 {
 		limit = 100
 	}
-	rows, err := d.Query(`SELECT s.icao24, s.callsign, s.lat, s.lon, s.altitude_ft, s.ground_speed_kt, s.track,
-		s.distance_nm, s.bearing_deg, s.category, s.seen_at,
-		a.registration, a.manufacturer, a.model, a.operator_name, a.country, a.country_flag
-		FROM sightings s
-		JOIN aircraft a ON s.icao24 = a.icao24
-		JOIN (SELECT icao24, MAX(id) AS max_id FROM sightings GROUP BY icao24) latest
-			ON s.icao24 = latest.icao24 AND s.id = latest.max_id
-		WHERE a.is_military = 1
-		ORDER BY s.seen_at DESC LIMIT ?`, limit)
+	rows, err := d.Query(`SELECT icao24, last_callsign, COALESCE(last_lat,0), COALESCE(last_lon,0),
+		COALESCE(last_altitude,0), COALESCE(last_speed,0), COALESCE(last_track,0),
+		COALESCE(last_dist_nm,0), COALESCE(last_bearing,0), category, last_seen_pos,
+		registration, manufacturer, model, operator_name, country, country_flag
+		FROM aircraft
+		WHERE is_military = 1
+		ORDER BY last_seen DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -600,12 +612,9 @@ func (d *DB) getDailyStats(limit int) ([]dailyRow, error) {
 	if limit <= 0 {
 		limit = 30
 	}
-	rows, err := d.Query(`SELECT d.date,
-		COALESCE((SELECT COUNT(DISTINCT s.icao24) FROM sightings s WHERE date(s.seen_at, 'unixepoch') = d.date), 0),
-		d.total_sightings,
-		COALESCE((SELECT COUNT(DISTINCT s.icao24) FROM sightings s JOIN aircraft a ON s.icao24 = a.icao24 WHERE date(s.seen_at, 'unixepoch') = d.date AND a.is_military = 1), 0),
-		d.max_distance_nm, d.max_altitude_ft, d.max_speed_kt
-		FROM daily_stats d ORDER BY d.date DESC LIMIT ?`, limit)
+	rows, err := d.Query(`SELECT date, unique_aircraft, total_sightings, military_aircraft,
+		max_distance_nm, max_altitude_ft, max_speed_kt
+		FROM daily_stats ORDER BY date DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -648,15 +657,13 @@ func (d *DB) getNearest(maxAlt int, maxDistNM float64, seenSecs int) (*nearestIn
 
 func (d *DB) getRecentNotable(maxAgeSec int, limit int) ([]notableResult, error) {
 	cutoff := time.Now().Unix() - int64(maxAgeSec)
-	rows, err := d.Query(`SELECT s.icao24, s.callsign, s.lat, s.lon, s.altitude_ft, s.ground_speed_kt, s.track,
-		s.distance_nm, s.bearing_deg, s.category, s.seen_at,
-		a.registration, a.manufacturer, a.model, a.operator_name, a.country, a.country_flag, a.is_military
-		FROM sightings s
-		JOIN aircraft a ON s.icao24 = a.icao24
-		JOIN (SELECT icao24, MAX(id) AS max_id FROM sightings WHERE seen_at > ? GROUP BY icao24) latest
-			ON s.icao24 = latest.icao24 AND s.id = latest.max_id
-		WHERE a.manufacturer != ''
-		ORDER BY s.distance_nm ASC
+	rows, err := d.Query(`SELECT icao24, last_callsign, COALESCE(last_lat,0), COALESCE(last_lon,0),
+		COALESCE(last_altitude,0), COALESCE(last_speed,0), COALESCE(last_track,0),
+		COALESCE(last_dist_nm,0), COALESCE(last_bearing,0), category, last_seen_pos,
+		registration, manufacturer, model, operator_name, country, country_flag, is_military
+		FROM aircraft
+		WHERE manufacturer != '' AND last_seen_pos > ?
+		ORDER BY COALESCE(min_distance_nm, 99999) ASC
 		LIMIT ?`, cutoff, limit)
 	if err != nil {
 		return nil, err
@@ -894,6 +901,7 @@ func scanAircraft(rows *sql.Rows) ([]aircraftRow, error) {
 			&a.FirstSeen, &a.LastSeen, &a.TotalSightings, &a.TotalFlights,
 			&a.MinDistNM, &a.MaxDistNM, &a.MinAltFt, &a.MaxAltFt, &a.MaxSpeedKt,
 			&a.LastLat, &a.LastLon, &a.LastAlt, &a.LastSpeed,
+			&a.LastTrack, &a.LastDistNM, &a.LastBearing,
 			&a.LastSeenPos, &a.UpdatedAt)
 		if err != nil {
 			return nil, err
